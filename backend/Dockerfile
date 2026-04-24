@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Installer les dépendances système pour PostgreSQL
+# Installer les dépendances système
 RUN apt-get update && apt-get install -y \
     gcc \
     pkg-config \
@@ -10,11 +10,11 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-# Copier requirements.txt et installer les dépendances Python
+# Copier et installer les dépendances Python d'abord (pour le cache Docker)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copier tout le code
+# Copier le reste du code
 COPY . .
 
 # Rendre le script d'entrée exécutable

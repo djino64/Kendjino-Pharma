@@ -1,26 +1,30 @@
 #!/bin/sh
 
-# Vérifier si les variables DB_HOST et DB_PORT existent
+echo "=== Démarrage du backend Django ==="
+
+# Vérifier les variables d'environnement
 if [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ]; then
-    echo "Waiting for PostgreSQL to start on $DB_HOST:$DB_PORT..."
+    echo "Attente de PostgreSQL sur $DB_HOST:$DB_PORT..."
     while ! nc -z "$DB_HOST" "$DB_PORT"; do
-        echo "PostgreSQL not ready yet on $DB_HOST:$DB_PORT... waiting 1s"
         sleep 1
     done
-    echo "PostgreSQL started on $DB_HOST:$DB_PORT!"
+    echo "PostgreSQL est prêt !"
 else
-    echo "DB_HOST or DB_PORT not set. Skipping database wait check."
-    echo "DATABASE_URL will be used directly by Django."
+    echo "Variables DB_HOST/DB_PORT non définies, utilisation de DATABASE_URL"
 fi
 
+# Afficher les packages installés (debug)
+echo "=== Packages Python installés ==="
+pip list
+
 # Appliquer les migrations
-echo "Running migrations..."
+echo "=== Application des migrations ==="
 python manage.py migrate --noinput
 
 # Collecter les fichiers statiques
-echo "Collecting static files..."
+echo "=== Collecte des fichiers statiques ==="
 python manage.py collectstatic --noinput
 
 # Démarrer Gunicorn
-echo "Starting Gunicorn..."
-exec gunicorn config.wsgi:application --bind 0.0.0.0:8000
+echo "=== Démarrage de Gunicorn ==="
+exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 60
