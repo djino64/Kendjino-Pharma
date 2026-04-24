@@ -1,105 +1,52 @@
-# docker-compose.yml
-version: '3.9'
+version: '3.8'
 
 services:
-
   db:
-    image: mysql:8.0
-    container_name: kendjino_mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    image: postgres:15-alpine
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - kendjino_net
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "5432:5432"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: kendjino_redis
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    networks:
-      - kendjino_net
-
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: kendjino_backend
-    restart: unless-stopped
-    env_file: .env.prod
+    build: ./backend
     volumes:
-      - media_files:/app/media
-      - static_files:/app/staticfiles
-    networks:
-      - kendjino_net
+      - ./backend:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - DB_HOST=db
+      - DB_PORT=5432
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_started
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL}
-    container_name: kendjino_frontend
-    restart: unless-stopped
-    networks:
-      - kendjino_net
+    ports:
+      - "8000:8000"
 
   nginx:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    container_name: kendjino_nginx
-    restart: unless-stopped
+    build: ./nginx
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     ports:
       - "80:80"
-      - "443:443"
-    volumes:
-      - static_files:/var/www/static:ro
-      - media_files:/var/www/media:ro
-      - certbot_certs:/etc/letsencrypt:ro
-      - certbot_www:/var/www/certbot:ro
-    networks:
-      - kendjino_net
     depends_on:
       - backend
-      - frontend
-
-  certbot:
-    image: certbot/certbot
-    container_name: kendjino_certbot
-    volumes:
-      - certbot_certs:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    entrypoint: >
-      /bin/sh -c "trap exit TERM;
-      while :; do certbot renew --webroot -w /var/www/certbot --quiet;
-      sleep 12h & wait $${!}; done"
 
 volumes:
-  mysql_data:
-  redis_data:
-  media_files:
-  static_files:
-  certbot_certs:
-  certbot_www:
-
-networks:
-  kendjino_net:
-    driver: bridge
+  postgres_data:
+  static_volume:
+  media_volume:
