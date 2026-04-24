@@ -4,9 +4,21 @@ from pathlib import Path
 
 from decouple import config
 
+
+# Au lieu de "from decouple import config", utilisez :
+import os
+from pathlib import Path
+
+# Configuration avec fallback pour Render
+def get_env_variable(var_name, default=None):
+    """Récupérer une variable d'environnement avec fallback"""
+    return os.getenv(var_name, default)
+
+# Vous pouvez maintenant utiliser get_env_variable('SECRET_KEY') au lieu de config('SECRET_KEY')
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = config("SECRET_KEY", default="change-me-in-production")
+SECRET_KEY = get_env_variable("SECRET_KEY", default="change-me-in-production")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -69,11 +81,11 @@ AUTH_USER_MODEL = "users.User"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": config("DB_NAME", default="kendjino_pharma"),
-        "USER": config("DB_USER", default="root"),
-        "PASSWORD": config("DB_PASSWORD", default="Kendji64@"),
-        "HOST": config("DB_HOST", default="localhost"),
-        "PORT": config("DB_PORT", default="3306"),
+        "NAME": get_env_variable("DB_NAME", default="kendjino_pharma"),
+        "USER": get_env_variable("DB_USER", default="root"),
+        "PASSWORD": get_env_variable("DB_PASSWORD", default="Kendji64@"),
+        "HOST": get_env_variable("DB_HOST", default="localhost"),
+        "PORT": get_env_variable("DB_PORT", default="3306"),
         "OPTIONS": {"charset": "utf8mb4"},
     }
 }
@@ -124,11 +136,11 @@ SIMPLE_JWT = {
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
-EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_HOST = get_env_variable("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = int(get_env_variable("EMAIL_PORT", default=587))
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_HOST_USER = get_env_variable("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = get_env_variable("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = "Kendjino Pharma <noreply@kendjinopharma.ht>"
 
 OTP_EXPIRY_MINUTES = 10
