@@ -192,14 +192,17 @@ if DEBUG:
 else:
     # En production, spécifie les origines autorisées
     CORS_ALLOWED_ORIGINS = [
-        "https://ton-frontend.onrender.com",  # ⚠️ À REMPLACER PAR L'URL DE TON FRONTEND
+        "https://kendjino-pharma.onrender.com",  # ⚠️ À REMPLACER PAR L'URL DE TON FRONTEND
+        "https://kendjino-pharma-api.onrender.com",  # ⚠️ À REMPLACER PAR L'URL DE TON API
         "http://localhost:3000",
-        "http://127.0.0.1:3000",
+
     ]
     
     # Si ton frontend utilise des requêtes avec cookies/credentials
     CORS_ALLOW_CREDENTIALS = True
-    
+    CSRF_TRUSTED_ORIGINS = [
+        "https://kendjino-pharma.onrender.com",  # À REMPLACER PAR L'URL DE TON FRONTEND
+    ]
     # Méthodes HTTP autorisées
     CORS_ALLOW_METHODS = [
         'DELETE',
@@ -229,8 +232,8 @@ else:
 # =========================
 if not DEBUG:
     CSRF_TRUSTED_ORIGINS = [
-        "https://kendjino-pharma.onrender.com",  
-        "https://kendjino-pharma-api.onrender.com",  
+        "https://kendjino-pharma.onrender.com",  # ⚠️ À REMPLACER PAR L'URL DE TON FRONTEND
+        "https://kendjino-pharma-api.onrender.com",  # ⚠️ À REMPLACER PAR L'URL DE TON API
     ]
 
 
