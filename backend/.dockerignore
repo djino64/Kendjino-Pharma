@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+dist/
+build/
+
+# Environnements virtuels
+venv/
+env/
+.env
+.venv
+
+# Tests
+.pytest_cache
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Fichiers locaux
+*.sqlite3
+db.sqlite3
+local_settings.py
+
+# Media (ne pas inclure dans l'image — utiliser un volume ou S3)
+media/
+
+# Node (frontend non inclus dans l'image backend)
+node_modules/
+frontend/
+
+# Logs
+*.log

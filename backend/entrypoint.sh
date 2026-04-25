@@ -1,30 +1,62 @@
 #!/bin/sh
+set -e
 
-echo "=== Démarrage du backend Django ==="
+# ─── Variables ──────────────────────────────────────────────────────────────────
+export DJANGO_SETTINGS_MODULE="config.settings.prod"
 
-# Vérifier les variables d'environnement
-if [ -n "$DB_HOST" ] && [ -n "$DB_PORT" ]; then
-    echo "Attente de PostgreSQL sur $DB_HOST:$DB_PORT..."
-    while ! nc -z "$DB_HOST" "$DB_PORT"; do
-        sleep 1
-    done
-    echo "PostgreSQL est prêt !"
+echo "========================================"
+echo "  Kendjino Pharma — Démarrage Backend"
+echo "  Settings : $DJANGO_SETTINGS_MODULE"
+echo "========================================"
+
+# ─── Attente PostgreSQL via DATABASE_URL ─────────────────────────────────────
+# Render injecte DATABASE_URL (pas DB_HOST/DB_PORT).
+# On parse DATABASE_URL pour extraire l'hôte et le port.
+if [ -n "$DATABASE_URL" ]; then
+    # Format: postgresql://user:pass@host:port/dbname
+    DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:/?]*\).*|\1|p')
+    DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+    DB_PORT=${DB_PORT:-5432}
+
+    echo "Attente de PostgreSQL sur $DB_HOST:$DB_PORT ..."
+    # python est disponible — utilisons-le pour le wait (pas besoin de netcat)
+    python - <<EOF
+import socket, time, sys
+
+host = "$DB_HOST"
+port = int("$DB_PORT")
+max_tries = 30
+for attempt in range(max_tries):
+    try:
+        s = socket.create_connection((host, port), timeout=3)
+        s.close()
+        print(f"PostgreSQL prêt après {attempt + 1} tentative(s).")
+        sys.exit(0)
+    except (OSError, ConnectionRefusedError):
+        print(f"Tentative {attempt + 1}/{max_tries} — PostgreSQL pas encore prêt...")
+        time.sleep(2)
+
+print("ERREUR: PostgreSQL inaccessible après 30 tentatives.")
+sys.exit(1)
+EOF
 else
-    echo "Variables DB_HOST/DB_PORT non définies, utilisation de DATABASE_URL"
+    echo "AVERTISSEMENT: DATABASE_URL non définie. Vérifiez les variables d'environnement Render."
 fi
 
-# Afficher les packages installés (debug)
-echo "=== Packages Python installés ==="
-pip list
-
-# Appliquer les migrations
-echo "=== Application des migrations ==="
+# ─── Migrations ──────────────────────────────────────────────────────────────
+echo "Exécution des migrations..."
 python manage.py migrate --noinput
 
-# Collecter les fichiers statiques
-echo "=== Collecte des fichiers statiques ==="
-python manage.py collectstatic --noinput
+# ─── Fichiers statiques ───────────────────────────────────────────────────────
+echo "Collecte des fichiers statiques..."
+python manage.py collectstatic --noinput --clear
 
-# Démarrer Gunicorn
-echo "=== Démarrage de Gunicorn ==="
-exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 60
+# ─── Démarrage Gunicorn ───────────────────────────────────────────────────────
+echo "Démarrage de Gunicorn..."
+exec gunicorn config.wsgi:application \
+    --bind 0.0.0.0:8000 \
+    --workers 2 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile - \
+    --log-level info
