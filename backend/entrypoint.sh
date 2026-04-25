@@ -1,4 +1,4 @@
-
+#!/bin/sh
 set -e
 
 # ─── Variables ──────────────────────────────────────────────────────────────────
@@ -47,23 +47,6 @@ fi
 echo "Exécution des migrations..."
 python manage.py migrate --noinput
 
-# ─── CRÉATION SUPERUSER (AJOUT UNIQUEMENT ICI) ─────────────────────────────────
-echo "Vérification/création du superutilisateur..."
-python manage.py shell << END
-from django.contrib.auth import get_user_model
-User = get_user_model()
-if not User.objects.filter(is_superuser=True).exists():
-    User.objects.create_superuser(
-        username='admin',
-        email='admin@kendjino-pharma.com',
-        password='Admin123!'
-    )
-    print("Superutilisateur créé : admin / Admin123!")
-else:
-    print("Superutilisateur existe déjà")
-END
-# ─── FIN CRÉATION SUPERUSER ───────────────────────────────────────────────────
-
 # ─── Fichiers statiques ───────────────────────────────────────────────────────
 echo "Collecte des fichiers statiques..."
 python manage.py collectstatic --noinput --clear
@@ -77,3 +60,5 @@ exec gunicorn config.wsgi:application \
     --access-logfile - \
     --error-logfile - \
     --log-level info
+
+!/bin/sh
