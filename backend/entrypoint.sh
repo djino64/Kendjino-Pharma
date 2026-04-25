@@ -45,24 +45,28 @@ python manage.py migrate --noinput
 
 # ─── Création Superuser ──────────────────────────────────────────────────────
 echo "Création du super utilisateur (si nécessaire)..."
+
 python manage.py shell <<EOF
 from django.contrib.auth import get_user_model
 import os
 
 User = get_user_model()
 
-username = os.getenv("DJANGO_SUPERUSER_USERNAME")
 email = os.getenv("DJANGO_SUPERUSER_EMAIL")
 password = os.getenv("DJANGO_SUPERUSER_PASSWORD")
 
-if username and email and password:
-    if not User.objects.filter(username=username).exists():
+if email and password:
+    if not User.objects.filter(email=email).exists():
         print("Création du superuser...")
-        User.objects.create_superuser(username, email, password)
+        User.objects.create_superuser(
+            email=email,
+            password=password
+        )
+        print("Superuser créé avec succès.")
     else:
         print("Superuser déjà existant.")
 else:
-    print("Variables du superuser manquantes.")
+    print("Variables du superuser manquantes (email/password).")
 EOF
 
 # ─── Fichiers statiques ───────────────────────────────────────────────────────
