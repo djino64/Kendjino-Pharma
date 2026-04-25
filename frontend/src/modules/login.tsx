@@ -17,21 +17,22 @@ export default function Login() {
     setError("");
 
     try {
+      // ✅ CORRECTION 1: endpoint correct (pas de "api" doublé)
       const res = await api.post("/auth/login/", {
         email,
         password,
       });
 
-      // 🔐 sauvegarde tokens
-      localStorage.setItem("access", res.data.access);
-      localStorage.setItem("refresh", res.data.refresh);
+      // ✅ CORRECTION 2: cohérence avec axios interceptor
+      localStorage.setItem("access_token", res.data.access);
+      localStorage.setItem("refresh_token", res.data.refresh);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      // redirect dashboard
       navigate("/dashboard");
     } catch (err: any) {
       setError(
-        err?.response?.data?.detail || "Erreur de connexion"
+        err?.response?.data?.detail ||
+        "Erreur de connexion"
       );
     } finally {
       setLoading(false);
