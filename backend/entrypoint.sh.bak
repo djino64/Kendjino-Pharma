@@ -1,4 +1,4 @@
-#!/bin/sh
+
 set -e
 
 # ─── Variables ──────────────────────────────────────────────────────────────────
@@ -10,12 +10,16 @@ echo "  Settings : $DJANGO_SETTINGS_MODULE"
 echo "========================================"
 
 # ─── Attente PostgreSQL via DATABASE_URL ─────────────────────────────────────
+# Render injecte DATABASE_URL (pas DB_HOST/DB_PORT).
+# On parse DATABASE_URL pour extraire l'hôte et le port.
 if [ -n "$DATABASE_URL" ]; then
+    # Format: postgresql://user:pass@host:port/dbname
     DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:/?]*\).*|\1|p')
     DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
     DB_PORT=${DB_PORT:-5432}
 
     echo "Attente de PostgreSQL sur $DB_HOST:$DB_PORT ..."
+    # python est disponible — utilisons-le pour le wait (pas besoin de netcat)
     python - <<EOF
 import socket, time, sys
 
@@ -36,34 +40,29 @@ print("ERREUR: PostgreSQL inaccessible après 30 tentatives.")
 sys.exit(1)
 EOF
 else
-    echo "AVERTISSEMENT: DATABASE_URL non définie."
+    echo "AVERTISSEMENT: DATABASE_URL non définie. Vérifiez les variables d'environnement Render."
 fi
 
 # ─── Migrations ──────────────────────────────────────────────────────────────
 echo "Exécution des migrations..."
 python manage.py migrate --noinput
 
-# ─── Création Superuser ──────────────────────────────────────────────────────
-echo "Création du super utilisateur (si nécessaire)..."
-python manage.py shell <<EOF
+# ─── CRÉATION SUPERUSER (AJOUT UNIQUEMENT ICI) ─────────────────────────────────
+echo "Vérification/création du superutilisateur..."
+python manage.py shell << END
 from django.contrib.auth import get_user_model
-import os
-
 User = get_user_model()
-
-username = os.getenv("DJANGO_SUPERUSER_USERNAME")
-email = os.getenv("DJANGO_SUPERUSER_EMAIL")
-password = os.getenv("DJANGO_SUPERUSER_PASSWORD")
-
-if username and email and password:
-    if not User.objects.filter(username=username).exists():
-        print("Création du superuser...")
-        User.objects.create_superuser(username, email, password)
-    else:
-        print("Superuser déjà existant.")
+if not User.objects.filter(is_superuser=True).exists():
+    User.objects.create_superuser(
+        username='admin',
+        email='admin@kendjino-pharma.com',
+        password='Admin123!'
+    )
+    print("Superutilisateur créé : admin / Admin123!")
 else:
-    print("Variables du superuser manquantes.")
-EOF
+    print("Superutilisateur existe déjà")
+END
+# ─── FIN CRÉATION SUPERUSER ───────────────────────────────────────────────────
 
 # ─── Fichiers statiques ───────────────────────────────────────────────────────
 echo "Collecte des fichiers statiques..."
