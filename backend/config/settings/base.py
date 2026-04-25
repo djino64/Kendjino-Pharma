@@ -78,17 +78,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 AUTH_USER_MODEL = "users.User"
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": get_env_variable("DB_NAME", default="kendjino_pharma"),
-        "USER": get_env_variable("DB_USER", default="root"),
-        "PASSWORD": get_env_variable("DB_PASSWORD", default="Kendji64@"),
-        "HOST": get_env_variable("DB_HOST", default="localhost"),
-        "PORT": get_env_variable("DB_PORT", default="3306"),
-        "OPTIONS": {"charset": "utf8mb4"},
-    }
-}
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
